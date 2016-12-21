@@ -1,5 +1,5 @@
 extern crate mio;
-use mio::{Token, Ready};
+use mio::{PollOpt, Token, Ready};
 use mio::deprecated::{EventLoop, Handler, };
 use mio::udp::UdpSocket;
 use std::net::{Ipv4Addr, IpAddr, SocketAddr};
@@ -19,7 +19,7 @@ impl UdpEndServer{
     fn new()->Self{
         UdpEndServer{
             socket : UdpSocket::bind(&SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080)).unwrap(),
-            token : Token::from(0);
+            token : Token(0),
             client : None 
         }
     }
@@ -32,7 +32,9 @@ impl Handler for UdpEndServer{
         if event_set.is_readable(){
             if self.token == token{
                 let mut buf = [0u8; 512];
-                self.socket.recv_from(&mut buf);
+                let (amt, src) = self.socket.recv_from(&mut buf).unwrap().unwrap();
+                //src.send_to()
+
 
             }
         }
@@ -44,5 +46,7 @@ struct UdpEndClient{
 
 }
 fn main() {
-    println!("Hello, world!");
+    let mut event_loop = EventLoop::<UdpEndServer>::new().unwrap();
+    let mut server = UdpEndServer::new();
+    event_loop.register(&server.socket, server.token, Ready::readable(), PollOpt::edge());
 }
